@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        
+        .search-box button {
+            padding: 10px 20px;
+            background: #1db954;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .song-card {
+            background: #8B4513;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            color: white;
+            max-width: 500px;
+        }
+        
+        .album-cover {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            margin-right: 20px;
+        }
+        
+        .song-info {
+            flex: 1;
+        }
+        
+        .song-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .artist-name {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 15px;
+        }
+        
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 4px;
+            border-radius: 2px;
+            flex: 1;
+            cursor: pointer;
+        }
+        
+        .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 2px;
+            width: 0%;
+        }
+        
+        .time {
+            font-size: 12px;
+        }
+        
+        .play-btn {
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .spotify-logo {
+            background: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+        }
+        
+        .no-preview {
+            color: #ccc;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-box">
+        <input type="text" id="searchInput" value="beautiful in white" placeholder="Search songs...">
+        <button onclick="searchSongs()">Search</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <audio id="audioPlayer"></audio>
+    
+    <script>
+        let currentAudio = null;
+        let currentProgress = null;
+        
+        async function searchSongs() {
+            const query = document.getElementById('searchInput').value;
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                const response = await fetch(`http://localhost:3000/spotify/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                resultsDiv.innerHTML = '';
+                
+                data.forEach((song, index) => {
+                    const songCard = document.createElement('div');
+                    songCard.className = 'song-card';
+                    songCard.id = `song-${index}`;
+                    
+                    songCard.innerHTML = `
+                        <img src="${song.image}" alt="Album" class="album-cover">
+                        <div class="song-info">
+                            <div class="song-title">${song.title}</div>
+                            <div class="artist-name">${song.artist}</div>
+                            <div class="player-controls">
+                                <div class="progress-bar" onclick="setProgress(event, ${index})">
+                                    <div class="progress-fill" id="progress-${index}"></div>
+                                </div>
+                                <span class="time" id="time-${index}">-0:30</span>
+                            </div>
+                        </div>
+                        ${song.previewUrl ? 
+                            `<button class="play-btn" onclick="togglePlay('${song.previewUrl}', ${index})">▶</button>` :
+                            '<div class="no-preview">No preview</div>'
+                        }
+                        <div class="spotify-logo">♫</div>
+                    `;
+                    
+                    resultsDiv.appendChild(songCard);
+                });
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+            }
+        }
+        
+        function togglePlay(url, index) {
+            const audio = document.getElementById('audioPlayer');
+            const playBtn = document.querySelector(`#song-${index} .play-btn`);
+            
+            if (currentAudio === index && !audio.paused) {
+                // Pause
+                audio.pause();
+                playBtn.innerHTML = '▶';
+            } else {
+                // Stop other songs
+                if (currentAudio !== null) {
+                    const prevBtn = document.querySelector(`#song-${currentAudio} .play-btn`);
+                    if (prevBtn) prevBtn.innerHTML = '▶';
+                }
+                
+                // Play new song
+                audio.src = url;
+                audio.play();
+                playBtn.innerHTML = '⏸';
+                currentAudio = index;
+                
+                // Update progress
+                audio.addEventListener('timeupdate', () => updateProgress(index));
+                audio.addEventListener('ended', () => {
+                    playBtn.innerHTML = '▶';
+                    currentAudio = null;
+                });
+            }
+        }
+        
+        function updateProgress(index) {
+            const audio = document.getElementById('audioPlayer');
+            const progressFill = document.getElementById(`progress-${index}`);
+            const timeDisplay = document.getElementById(`time-${index}`);
+            
+            if (audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                progressFill.style.width = progress + '%';
+                
+                const remaining = audio.duration - audio.currentTime;
+                const minutes = Math.floor(remaining / 60);
+                const seconds = Math.floor(remaining % 60);
+                timeDisplay.textContent = `-${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        function setProgress(event, index) {
+            if (currentAudio !== index) return;
+            
+            const audio = document.getElementById('audioPlayer');
+            const progressBar = event.currentTarget;
+            const clickX = event.offsetX;
+            const width = progressBar.offsetWidth;
+            
+            if (audio.duration) {
+                audio.currentTime = (clickX / width) * audio.duration;
+            }
+        }
+        
+        // Auto search on load
+        searchSongs();
+    </script>
+</body>
+</html>
