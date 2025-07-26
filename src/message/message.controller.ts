@@ -38,6 +38,12 @@ export class MessageController {
     return this.messageService.findAllisPrivate();
   }
 
+  @Patch('mark-all-read')
+  async markAllAsRead() {
+    await this.messageService.markAllAsRead();
+    return { success: true };
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.messageService.findOne(id);
@@ -48,17 +54,26 @@ export class MessageController {
     return this.messageService.update(id, dto);
   }
 
-@Patch(':id/privacy-update')
-async updatePrivacy(
-  @Param('id') id: number,
-  @Body('isPublic') isPublic: boolean,
-) {
-  const result = await this.messageService.updatePrivacy(id, isPublic);
-  if (!result) {
-    throw new NotFoundException('Message not found');
+  @Patch(':id/privacy-update')
+  async updatePrivacy(
+    @Param('id') id: number,
+    @Body('isPublic') isPublic: boolean,
+  ) {
+    const result = await this.messageService.updatePrivacy(id, isPublic);
+    if (!result) {
+      throw new NotFoundException('Message not found');
+    }
+    return { success: true };
   }
-  return { success: true };
-}
+
+  @Patch(':id/mark-read')
+  async markAsRead(@Param('id', ParseIntPipe) id: number) {
+    const result = await this.messageService.markAsRead(id);
+    if (!result) {
+      throw new NotFoundException('Message not found');
+    }
+    return { success: true };
+  }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {

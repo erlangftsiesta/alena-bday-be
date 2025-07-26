@@ -5,6 +5,8 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   name: string;
   username: string;
   password: string;
+  bio: string;
+  avatar?: string | undefined;
   createdAt: Date;
   updatedAt: Date;
 }

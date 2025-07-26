@@ -52,6 +52,7 @@ export class MessageService {
     const messages = await this.messageRepo.find({
       where: { isPublic: true },
       relations: ['user'],
+      order: { date: 'DESC' },
     });
 
     return messages.map((msg) => ({
@@ -71,6 +72,7 @@ export class MessageService {
     const messages = await this.messageRepo.find({
       where: { isPublic: false },
       relations: ['user'],
+      order: { date: 'DESC' },
     });
 
     return messages.map((msg) => ({
@@ -127,5 +129,22 @@ export class MessageService {
   async remove(id: number): Promise<void> {
     const message = await this.findOne(id);
     await this.messageRepo.remove(message);
+  }
+
+  // Tandai satu pesan sebagai dibaca
+  async markAsRead(id: number): Promise<boolean> {
+    const result = await this.messageRepo.update({ id }, { isNew: false });
+
+    return result!.affected! > 0;
+  }
+
+  // Tandai semua pesan sebagai dibaca
+  async markAllAsRead(): Promise<void> {
+    await this.messageRepo
+      .createQueryBuilder()
+      .update(Message)
+      .set({ isNew: false })
+      .where('isNew = :isNew', { isNew: true })
+      .execute();
   }
 }

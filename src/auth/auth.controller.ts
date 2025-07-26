@@ -18,7 +18,7 @@ export interface CustomRequest extends Request {
   logout(callback: (err: any) => void): void;
 }
 
-@Controller()
+@Controller('auth')
 export class AuthController {
   constructor(private readonly usersService: UsersService) {}
 

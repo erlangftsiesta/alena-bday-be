@@ -14,6 +14,12 @@ export class Users {
   @Column()
   password: string;
 
+  @Column({ nullable: true })
+  bio: string;
+
+  @Column({ nullable: true })
+  avatar: string;
+
   @Column()
   createdAt: Date;
 
